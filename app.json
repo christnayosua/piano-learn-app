@@ -5,16 +5,24 @@
     "scheme": "pianolearn",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/android-icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/android-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0A0F"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.pianolearn.app"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/android-icon.png",
         "backgroundColor": "#0A0A0F"
       },
       "package": "com.pianolearn.app"
@@ -22,6 +30,13 @@
     "plugins": [
       "expo-router",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "37e8f672-83ac-496a-bf4a-1c3d8154576a"
+      }
+    },
+    "owner": "christnayosua0406"
   }
 }

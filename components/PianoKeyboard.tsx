@@ -7,6 +7,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { isBlackKey, NOTE_NAMES } from '../data/chords';
+import { playNoteSound } from '../utils/sound';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -30,6 +31,7 @@ const BLACK_KEY_OFFSETS: Record<number, number> = {
 
 function PianoKey({
   noteIndex,
+  octave = 4,
   isHighlighted,
   isBlack,
   onPress,
@@ -37,6 +39,7 @@ function PianoKey({
   compact,
 }: {
   noteIndex: number;
+  octave?: number;
   isHighlighted: boolean;
   isBlack: boolean;
   onPress: () => void;
@@ -50,12 +53,13 @@ function PianoKey({
   }));
 
   const handlePressIn = useCallback(() => {
-    scale.value = withSpring(0.95, { damping: 15, stiffness: 300 });
+    scale.value = withSpring(0.94, { damping: 15, stiffness: 350 });
+    playNoteSound(noteIndex, octave);
     onPress();
-  }, [onPress, scale]);
+  }, [onPress, noteIndex, octave, scale]);
 
   const handlePressOut = useCallback(() => {
-    scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+    scale.value = withSpring(1, { damping: 15, stiffness: 350 });
   }, [scale]);
 
   if (isBlack) {
@@ -180,6 +184,7 @@ export default function PianoKeyboard({
           <PianoKey
             key={`white-${key.octave}-${key.noteIndex}`}
             noteIndex={key.noteIndex}
+            octave={key.octave}
             isHighlighted={isKeyHighlighted(key.noteIndex)}
             isBlack={false}
             onPress={() => onKeyPress?.(key.noteIndex)}
@@ -199,6 +204,7 @@ export default function PianoKeyboard({
           >
             <PianoKey
               noteIndex={key.noteIndex}
+              octave={key.octave}
               isHighlighted={isKeyHighlighted(key.noteIndex)}
               isBlack={true}
               onPress={() => onKeyPress?.(key.noteIndex)}

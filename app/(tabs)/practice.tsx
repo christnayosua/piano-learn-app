@@ -31,6 +31,7 @@ import {
   type SongNote,
 } from '../../data/songs';
 import { NOTE_NAMES } from '../../data/chords';
+import { playNoteSound } from '../../utils/sound';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -49,13 +50,13 @@ function FallingNote({
 }) {
   const beatsAhead = note.startBeat - currentBeat;
   const noteHeight = note.duration * 30;
-  const bottom = beatsAhead * 40;
+  const bottom = beatsAhead * 45;
 
   // Only show notes within visible range
-  if (bottom < -noteHeight || bottom > 300) return null;
+  if (bottom < -noteHeight || bottom > 320) return null;
 
-  // Calculate horizontal position based on key
-  const whiteKeyWidth = (keyboardWidth - 32) / 14;
+  const totalWhiteKeys = 14;
+  const whiteKeyWidth = (keyboardWidth - 32) / totalWhiteKeys;
   const whiteKeyPositions: Record<number, number> = {
     0: 0, 2: 1, 4: 2, 5: 3, 7: 4, 9: 5, 11: 6,
   };
@@ -68,12 +69,15 @@ function FallingNote({
   let left: number;
 
   if (isBlack) {
-    left = ((blackKeyPositions[note.key % 12] ?? 0) + octaveOffset) * whiteKeyWidth + 16;
+    left = ((blackKeyPositions[note.key % 12] ?? 0) + octaveOffset) * whiteKeyWidth + (whiteKeyWidth * 0.2);
   } else {
-    left = ((whiteKeyPositions[note.key % 12] ?? 0) + octaveOffset) * whiteKeyWidth + 16;
+    left = ((whiteKeyPositions[note.key % 12] ?? 0) + octaveOffset) * whiteKeyWidth + 1;
   }
 
-  const isActive = beatsAhead <= 0 && beatsAhead > -note.duration;
+  const isActive = beatsAhead <= 0.2 && beatsAhead > -note.duration;
+  const isLeftHand = note.hand === 'left';
+  const baseColor = isLeftHand ? '#FF6BCD' : '#B388FF';
+  const activeColor = isLeftHand ? '#FF6BCD' : '#00E5FF';
 
   return (
     <View
@@ -81,21 +85,22 @@ function FallingNote({
         position: 'absolute',
         left,
         bottom,
-        width: isBlack ? whiteKeyWidth * 0.6 : whiteKeyWidth - 4,
-        height: Math.max(noteHeight, 14),
-        backgroundColor: isActive ? '#00E5FF' : '#B388FF80',
+        width: isBlack ? whiteKeyWidth * 0.6 : whiteKeyWidth - 2,
+        height: Math.max(noteHeight, 16),
+        backgroundColor: isActive ? activeColor : baseColor + '90',
         borderRadius: 4,
         borderWidth: isActive ? 1 : 0,
-        borderColor: '#00E5FF',
-        shadowColor: isActive ? '#00E5FF' : 'transparent',
+        borderColor: activeColor,
+        shadowColor: isActive ? activeColor : 'transparent',
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: isActive ? 0.8 : 0,
+        shadowOpacity: isActive ? 0.9 : 0,
         shadowRadius: isActive ? 8 : 0,
         alignItems: 'center',
         justifyContent: 'center',
+        zIndex: isBlack ? 10 : 1,
       }}
     >
-      <Text style={{ fontSize: 7, color: '#fff', fontWeight: '700' }}>
+      <Text style={{ fontSize: 8, color: '#fff', fontWeight: '800' }}>
         {NOTE_NAMES[note.key % 12]}
       </Text>
     </View>
@@ -165,7 +170,7 @@ function SongCard({
               {song.difficulty.toUpperCase()}
             </Text>
           </View>
-          <Ionicons name="play-circle" size={24} color="#555570" style={{ marginTop: 6 }} />
+          <Ionicons name="play-circle" size={24} color="#00E5FF" style={{ marginTop: 6 }} />
         </View>
       </Pressable>
     </Animated.View>
@@ -177,8 +182,13 @@ export default function PracticeScreen() {
   const [activeCategory, setActiveCategory] = useState<SongCategory | 'all'>('all');
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentBeat, setCurrentBeat] = useState(-4); // Start 4 beats before
+  const [currentBeat, setCurrentBeat] = useState(-4);
   const [tempo, setTempo] = useState(100);
+  const [score, setScore] = useState(0);
+  const [combo, setCombo] = useState(0);
+  const [hitFeedback, setHitFeedback] = useState<string | null>(null);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const pulseAnim = useSharedValue(1);
@@ -196,37 +206,10 @@ export default function PracticeScreen() {
     if (!selectedSong) return [];
     return selectedSong.notes
       .filter(
-        (n) => n.startBeat <= currentBeat && n.startBeat + n.duration > currentBeat
+        (n) => n.startBeat <= currentBeat + 0.3 && n.startBeat + n.duration >= currentBeat - 0.2
       )
       .map((n) => n.key % 12);
   }, [selectedSong, currentBeat]);
-
-  const startPlayback = useCallback(() => {
-    if (!selectedSong) return;
-    setIsPlaying(true);
-    const bpm = (selectedSong.bpm * tempo) / 100;
-    const intervalMs = (60 / bpm) * 250; // quarter of a beat
-
-    pulseAnim.value = withRepeat(
-      withSequence(
-        withTiming(1.02, { duration: intervalMs * 2, easing: Easing.inOut(Easing.ease) }),
-        withTiming(1, { duration: intervalMs * 2, easing: Easing.inOut(Easing.ease) })
-      ),
-      -1,
-      true
-    );
-
-    intervalRef.current = setInterval(() => {
-      setCurrentBeat((prev) => {
-        const maxBeat = Math.max(...selectedSong.notes.map((n) => n.startBeat + n.duration));
-        if (prev >= maxBeat + 2) {
-          stopPlayback();
-          return -4;
-        }
-        return prev + 0.25;
-      });
-    }, intervalMs);
-  }, [selectedSong, tempo, pulseAnim]);
 
   const stopPlayback = useCallback(() => {
     setIsPlaying(false);
@@ -238,9 +221,51 @@ export default function PracticeScreen() {
     pulseAnim.value = 1;
   }, [pulseAnim]);
 
+  const startPlayback = useCallback(() => {
+    if (!selectedSong) return;
+    setIsPlaying(true);
+    const bpm = (selectedSong.bpm * tempo) / 100;
+    const intervalMs = (60 / bpm) * 250;
+
+    pulseAnim.value = withRepeat(
+      withSequence(
+        withTiming(1.01, { duration: intervalMs * 2, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: intervalMs * 2, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+
+    intervalRef.current = setInterval(() => {
+      setCurrentBeat((prev) => {
+        const nextBeat = prev + 0.25;
+        const maxBeat = Math.max(...selectedSong.notes.map((n) => n.startBeat + n.duration));
+
+        // Play demo sound automatically
+        selectedSong.notes.forEach((note) => {
+          if (Math.abs(note.startBeat - nextBeat) < 0.125) {
+            playNoteSound(note.key % 12, note.octave);
+            setCombo((c) => c + 1);
+            setScore((s) => s + 50);
+          }
+        });
+
+        if (nextBeat >= maxBeat + 2) {
+          stopPlayback();
+          setShowCompletionModal(true);
+          return maxBeat;
+        }
+        return nextBeat;
+      });
+    }, intervalMs);
+  }, [selectedSong, tempo, pulseAnim, stopPlayback]);
+
   const resetPlayback = useCallback(() => {
     stopPlayback();
     setCurrentBeat(-4);
+    setScore(0);
+    setCombo(0);
+    setHitFeedback(null);
   }, [stopPlayback]);
 
   useEffect(() => {
@@ -254,8 +279,29 @@ export default function PracticeScreen() {
   const selectSong = useCallback((song: Song) => {
     setSelectedSong(song);
     setCurrentBeat(-4);
+    setScore(0);
+    setCombo(0);
+    setHitFeedback(null);
+    setShowCompletionModal(false);
     setState('playing');
   }, []);
+
+  const handleKeyPress = useCallback((keyIndex: number) => {
+    if (!selectedSong) return;
+    
+    // Check if key press matches active notes
+    const activeNote = selectedSong.notes.find((n) => {
+      const beatsAhead = n.startBeat - currentBeat;
+      return n.key % 12 === keyIndex % 12 && Math.abs(beatsAhead) <= 0.8;
+    });
+
+    if (activeNote) {
+      setScore((prev) => prev + 100);
+      setCombo((prev) => prev + 1);
+      setHitFeedback('PERFECT!');
+      setTimeout(() => setHitFeedback(null), 800);
+    }
+  }, [selectedSong, currentBeat]);
 
   if (state === 'playing' && selectedSong) {
     return (
@@ -282,28 +328,65 @@ export default function PracticeScreen() {
               {selectedSong.title}
             </Text>
             <Text className="text-text-secondary" style={{ fontSize: 11 }}>
-              {selectedSong.artist} · {selectedSong.timeSignature}
+              {selectedSong.artist} · Score: {score}
             </Text>
           </View>
-          <View
-            style={{
-              backgroundColor: DIFFICULTY_COLORS[selectedSong.difficulty] + '20',
-              borderRadius: 8,
-              paddingHorizontal: 10,
-              paddingVertical: 4,
-            }}
-          >
-            <Text
+          <View className="flex-row items-center">
+            <View
               style={{
-                color: DIFFICULTY_COLORS[selectedSong.difficulty],
-                fontSize: 10,
-                fontWeight: '700',
+                backgroundColor: '#00E5FF20',
+                borderRadius: 8,
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                marginRight: 6,
               }}
             >
-              {selectedSong.difficulty.toUpperCase()}
-            </Text>
+              <Text style={{ color: '#00E5FF', fontSize: 10, fontWeight: '700' }}>
+                COMBO x{combo}
+              </Text>
+            </View>
+            <View
+              style={{
+                backgroundColor: DIFFICULTY_COLORS[selectedSong.difficulty] + '20',
+                borderRadius: 8,
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+              }}
+            >
+              <Text
+                style={{
+                  color: DIFFICULTY_COLORS[selectedSong.difficulty],
+                  fontSize: 10,
+                  fontWeight: '700',
+                }}
+              >
+                {selectedSong.difficulty.toUpperCase()}
+              </Text>
+            </View>
           </View>
         </View>
+        {/* Letter Notes Banner */}
+        {selectedSong.letterNotes && (
+          <View
+            style={{
+              marginHorizontal: 16,
+              marginBottom: 8,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              backgroundColor: '#12121A',
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: '#2A2A3A',
+              flexDirection: 'row',
+              alignItems: 'center',
+            }}
+          >
+            <Ionicons name="musical-notes" size={16} color="#00E5FF" style={{ marginRight: 8 }} />
+            <Text style={{ color: '#EAEAF0', fontSize: 11, fontWeight: '600', flex: 1 }} numberOfLines={1}>
+              {selectedSong.letterNotes}
+            </Text>
+          </View>
+        )}
 
         {/* Falling Notes Area */}
         <Animated.View
@@ -321,15 +404,39 @@ export default function PracticeScreen() {
             },
           ]}
         >
-          {/* Guide line */}
+          {/* Hit Feedback Floating Toast */}
+          {hitFeedback && (
+            <Animated.View
+              entering={FadeIn.duration(200)}
+              style={{
+                position: 'absolute',
+                top: 40,
+                alignSelf: 'center',
+                backgroundColor: '#00E5FF',
+                paddingHorizontal: 16,
+                paddingVertical: 6,
+                borderRadius: 12,
+                zIndex: 50,
+              }}
+            >
+              <Text style={{ color: '#0A0A0F', fontWeight: '900', fontSize: 14 }}>
+                {hitFeedback}
+              </Text>
+            </Animated.View>
+          )}
+
+          {/* Target Hit Line */}
           <View
             style={{
               position: 'absolute',
               bottom: 0,
               left: 0,
               right: 0,
-              height: 2,
-              backgroundColor: '#00E5FF40',
+              height: 4,
+              backgroundColor: '#00E5FF',
+              shadowColor: '#00E5FF',
+              shadowRadius: 8,
+              shadowOpacity: 0.8,
             }}
           />
 
@@ -363,9 +470,9 @@ export default function PracticeScreen() {
         </Animated.View>
 
         {/* Controls */}
-        <View className="px-5 py-4">
-          {/* Tempo Slider */}
-          <View className="flex-row items-center justify-between mb-4">
+        <View className="px-5 py-3">
+          {/* Tempo Selector */}
+          <View className="flex-row items-center justify-between mb-3">
             <Text className="text-text-secondary" style={{ fontSize: 12 }}>
               Tempo: {tempo}%
             </Text>
@@ -404,7 +511,7 @@ export default function PracticeScreen() {
             </View>
           </View>
 
-          {/* Play Controls */}
+          {/* Play / Reset Buttons */}
           <View className="flex-row items-center justify-center" style={{ gap: 16 }}>
             <AnimatedButton
               title="Reset"
@@ -414,7 +521,7 @@ export default function PracticeScreen() {
               icon={<Ionicons name="refresh" size={16} color="#EAEAF0" />}
             />
             <AnimatedButton
-              title={isPlaying ? 'Pause' : 'Play'}
+              title={isPlaying ? 'Pause' : 'Play Song'}
               onPress={isPlaying ? stopPlayback : startPlayback}
               variant="primary"
               size="lg"
@@ -429,17 +536,72 @@ export default function PracticeScreen() {
           </View>
         </View>
 
-        {/* Piano Keyboard */}
+        {/* Interactive Piano Keyboard */}
         <View className="pb-4">
           <PianoKeyboard
             highlightedKeys={highlightedKeys}
             octaves={2}
             compact
-            onKeyPress={(key) => {
-              // Visual feedback handled by keyboard component
-            }}
+            onKeyPress={handleKeyPress}
           />
         </View>
+
+        {/* Song Completion Overlay */}
+        {showCompletionModal && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              left: 0,
+              right: 0,
+              backgroundColor: 'rgba(10,10,15,0.92)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 24,
+              zIndex: 100,
+            }}
+          >
+            <Ionicons name="trophy" size={64} color="#FFD700" style={{ marginBottom: 16 }} />
+            <Text style={{ color: '#EAEAF0', fontSize: 24, fontWeight: '800', marginBottom: 8 }}>
+              Song Completed!
+            </Text>
+            <Text style={{ color: '#8888A0', fontSize: 14, marginBottom: 24, textAlign: 'center' }}>
+              Great job practicing {selectedSong.title}!
+            </Text>
+
+            <View style={{ backgroundColor: '#12121A', borderRadius: 16, padding: 20, width: '100%', marginBottom: 24, borderWidth: 1, borderColor: '#2A2A3A' }}>
+              <View className="flex-row justify-between mb-2">
+                <Text style={{ color: '#8888A0' }}>Final Score</Text>
+                <Text style={{ color: '#00E5FF', fontWeight: '700' }}>{score} PTS</Text>
+              </View>
+              <View className="flex-row justify-between mb-2">
+                <Text style={{ color: '#8888A0' }}>Max Combo</Text>
+                <Text style={{ color: '#B388FF', fontWeight: '700' }}>{combo}x</Text>
+              </View>
+              <View className="flex-row justify-between">
+                <Text style={{ color: '#8888A0' }}>XP Earned</Text>
+                <Text style={{ color: '#FF6BCD', fontWeight: '700' }}>+100 XP</Text>
+              </View>
+            </View>
+
+            <AnimatedButton
+              title="Practice Again"
+              onPress={resetPlayback}
+              size="lg"
+              variant="primary"
+            />
+            <Pressable
+              onPress={() => {
+                stopPlayback();
+                setState('catalog');
+              }}
+              style={{ marginTop: 16 }}
+            >
+              <Text style={{ color: '#8888A0', fontSize: 14, fontWeight: '600' }}>Back to Song Catalog</Text>
+            </Pressable>
+          </View>
+        )}
       </SafeAreaView>
     );
   }
@@ -458,40 +620,42 @@ export default function PracticeScreen() {
       </View>
 
       {/* Category Chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        className="mt-4 mb-4"
-        contentContainerStyle={{ paddingHorizontal: 20 }}
-      >
-        {SONG_CATEGORIES.map((cat) => (
-          <Pressable
-            key={cat.key}
-            onPress={() => setActiveCategory(cat.key)}
-            style={{
-              paddingHorizontal: 18,
-              paddingVertical: 8,
-              borderRadius: 20,
-              backgroundColor:
-                activeCategory === cat.key ? '#00E5FF20' : '#12121A',
-              borderWidth: 1,
-              borderColor:
-                activeCategory === cat.key ? '#00E5FF' : '#2A2A3A',
-              marginRight: 8,
-            }}
-          >
-            <Text
+      <View style={{ height: 45, marginTop: 16, marginBottom: 16 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20, alignItems: 'center' }}
+        >
+          {SONG_CATEGORIES.map((cat) => (
+            <Pressable
+              key={cat.key}
+              onPress={() => setActiveCategory(cat.key)}
               style={{
-                color: activeCategory === cat.key ? '#00E5FF' : '#8888A0',
-                fontSize: 12,
-                fontWeight: '700',
+                paddingHorizontal: 18,
+                paddingVertical: 8,
+                borderRadius: 20,
+                backgroundColor: activeCategory === cat.key ? '#00E5FF20' : '#12121A',
+                borderWidth: 1,
+                borderColor: activeCategory === cat.key ? '#00E5FF' : '#2A2A3A',
+                marginRight: 8,
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: 70,
               }}
             >
-              {cat.label}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+              <Text
+                style={{
+                  color: activeCategory === cat.key ? '#00E5FF' : '#8888A0',
+                  fontSize: 12,
+                  fontWeight: '700',
+                }}
+              >
+                {cat.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Song List */}
       <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false}>

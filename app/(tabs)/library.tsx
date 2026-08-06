@@ -10,15 +10,16 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeInUp, SlideInUp } from 'react-native-reanimated';
+import Animated, { FadeInUp, SlideInUp } from 'react-native-reanimated';
 import PianoKeyboard from '../../components/PianoKeyboard';
 import ChordDiagram from '../../components/ChordDiagram';
 import AnimatedButton from '../../components/AnimatedButton';
 import { CHORDS, NOTE_NAMES, type Chord, type ChordCategory } from '../../data/chords';
+import { SCALES, type Scale } from '../../data/scales';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-type LibraryTab = 'chords' | 'sheets';
+type LibraryTab = 'chords' | 'scales' | 'sheets';
 
 const CHORD_CATEGORIES: { key: ChordCategory | 'all'; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -40,6 +41,103 @@ const SAMPLE_SHEETS = [
 ];
 
 const DIFF_COLORS = { easy: '#00E5FF', medium: '#B388FF', hard: '#FF6BCD' };
+
+function ScaleDetailModal({
+  scale,
+  visible,
+  onClose,
+}: {
+  scale: Scale | null;
+  visible: boolean;
+  onClose: () => void;
+}) {
+  if (!scale) return null;
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent>
+      <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
+        <Animated.View
+          entering={SlideInUp.duration(400)}
+          style={{
+            backgroundColor: '#0A0A0F',
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            padding: 24,
+            paddingBottom: 40,
+            borderWidth: 1,
+            borderColor: '#2A2A3A',
+          }}
+        >
+          <View className="items-center mb-4">
+            <View style={{ width: 36, height: 4, backgroundColor: '#2A2A3A', borderRadius: 2 }} />
+          </View>
+
+          <View className="flex-row items-center justify-between mb-2">
+            <View>
+              <Text className="text-text-primary font-bold" style={{ fontSize: 24 }}>
+                {scale.name}
+              </Text>
+              <Text className="text-text-secondary mt-1" style={{ fontSize: 13 }}>
+                Formula: {scale.formula}
+              </Text>
+            </View>
+            <Pressable onPress={onClose} style={{ backgroundColor: '#1A1A25', borderRadius: 12, padding: 8 }}>
+              <Ionicons name="close" size={20} color="#8888A0" />
+            </Pressable>
+          </View>
+
+          <Text className="text-text-secondary my-3" style={{ fontSize: 13, lineHeight: 18 }}>
+            {scale.description}
+          </Text>
+
+          {/* Scale Notes */}
+          <View className="flex-row items-center mt-2 mb-6">
+            <Text className="text-text-secondary" style={{ fontSize: 13 }}>
+              Scale Notes:{' '}
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {scale.keys.map((key, i) => (
+                <View
+                  key={i}
+                  style={{
+                    backgroundColor: '#B388FF20',
+                    borderRadius: 8,
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    marginRight: 6,
+                  }}
+                >
+                  <Text style={{ color: '#B388FF', fontSize: 13, fontWeight: '700' }}>
+                    {NOTE_NAMES[key % 12]}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* Keyboard Visual */}
+          <View className="mb-6 items-center">
+            <Text className="text-text-secondary mb-3 w-full text-left" style={{ fontSize: 12 }}>
+              Keyboard Finger Pattern:
+            </Text>
+            <PianoKeyboard
+              highlightedKeys={scale.keys.map((k) => k % 12)}
+              octaves={1}
+              compact={true}
+            />
+          </View>
+
+          <AnimatedButton
+            title="Close"
+            onPress={onClose}
+            size="lg"
+            variant="secondary"
+          />
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+}
 
 function ChordDetailModal({
   chord,
@@ -125,14 +223,14 @@ function ChordDetailModal({
           </View>
 
           {/* Interactive Piano */}
-          <View className="mb-4">
-            <Text className="text-text-secondary mb-3" style={{ fontSize: 12 }}>
+          <View className="mb-4 items-center">
+            <Text className="text-text-secondary mb-3 w-full text-left" style={{ fontSize: 12 }}>
               Keys to press:
             </Text>
             <PianoKeyboard
               highlightedKeys={chord.keys.map((k) => k % 12)}
               octaves={1}
-              compact={false}
+              compact={true} 
             />
           </View>
 
@@ -176,11 +274,81 @@ function ChordDetailModal({
   );
 }
 
+function SheetDetailModal({
+  sheet,
+  visible,
+  onClose,
+}: {
+  sheet: typeof SAMPLE_SHEETS[0] | null;
+  visible: boolean;
+  onClose: () => void;
+}) {
+  if (!sheet) return null;
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent>
+      <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
+        <Animated.View
+          entering={SlideInUp.duration(400)}
+          style={{
+            backgroundColor: '#0A0A0F',
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            padding: 24,
+            paddingBottom: 40,
+            borderWidth: 1,
+            borderColor: '#2A2A3A',
+          }}
+        >
+          <View className="items-center mb-4">
+            <View style={{ width: 36, height: 4, backgroundColor: '#2A2A3A', borderRadius: 2 }} />
+          </View>
+
+          <View className="flex-row items-center justify-between mb-6">
+            <View>
+              <Text className="text-text-primary font-bold" style={{ fontSize: 22 }}>
+                {sheet.title}
+              </Text>
+              <Text className="text-text-secondary mt-1" style={{ fontSize: 14 }}>
+                {sheet.composer} · {sheet.pages} pages
+              </Text>
+            </View>
+            <Pressable onPress={onClose} style={{ backgroundColor: '#1A1A25', borderRadius: 12, padding: 8 }}>
+              <Ionicons name="close" size={20} color="#8888A0" />
+            </Pressable>
+          </View>
+
+          <View style={{ backgroundColor: '#12121A', borderRadius: 16, padding: 32, alignItems: 'center', marginBottom: 24, borderWidth: 1, borderColor: '#2A2A3A' }}>
+            <Ionicons name="construct" size={48} color="#8888A0" style={{ marginBottom: 16 }} />
+            <Text style={{ color: '#EAEAF0', fontSize: 16, fontWeight: '700', textAlign: 'center', marginBottom: 8 }}>
+              Work in Progress
+            </Text>
+            <Text style={{ color: '#8888A0', fontSize: 13, textAlign: 'center' }}>
+              Fitur Sheet Music Viewer akan segera ditambahkan di sini!
+            </Text>
+          </View>
+
+          <AnimatedButton
+            title="Close"
+            onPress={onClose}
+            size="lg"
+            variant="secondary"
+          />
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+}
+
 export default function LibraryScreen() {
   const [activeTab, setActiveTab] = useState<LibraryTab>('chords');
   const [activeCategory, setActiveCategory] = useState<ChordCategory | 'all'>('all');
   const [selectedChord, setSelectedChord] = useState<Chord | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [selectedSheet, setSelectedSheet] = useState<typeof SAMPLE_SHEETS[0] | null>(null);
+  const [sheetModalVisible, setSheetModalVisible] = useState(false);
+  const [selectedScale, setSelectedScale] = useState<Scale | null>(null);
+  const [scaleModalVisible, setScaleModalVisible] = useState(false);
 
   const filteredChords = useMemo(() => {
     if (activeCategory === 'all') return CHORDS;
@@ -256,27 +424,27 @@ export default function LibraryScreen() {
 
       {/* Tab Switcher */}
       <View className="flex-row mx-5 mt-4 mb-4">
-        {(['chords', 'sheets'] as LibraryTab[]).map((tab) => (
+        {(['chords', 'scales', 'sheets'] as LibraryTab[]).map((tab) => (
           <Pressable
             key={tab}
             onPress={() => setActiveTab(tab)}
             style={{
               flex: 1,
-              paddingVertical: 12,
+              paddingVertical: 10,
               borderRadius: 12,
               backgroundColor: activeTab === tab ? '#00E5FF' : '#12121A',
-              marginHorizontal: 4,
+              marginHorizontal: 3,
               alignItems: 'center',
             }}
           >
             <Text
               style={{
                 color: activeTab === tab ? '#0A0A0F' : '#8888A0',
-                fontSize: 14,
+                fontSize: 12,
                 fontWeight: '700',
               }}
             >
-              {tab === 'chords' ? '🎹 Chords' : '🎼 Sheet Music'}
+              {tab === 'chords' ? '🎹 Chords' : tab === 'scales' ? '🎼 Scales' : '📄 Sheets'}
             </Text>
           </Pressable>
         ))}
@@ -285,40 +453,42 @@ export default function LibraryScreen() {
       {activeTab === 'chords' ? (
         <>
           {/* Category Filter */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="mb-4"
-            contentContainerStyle={{ paddingHorizontal: 20 }}
-          >
-            {CHORD_CATEGORIES.map((cat) => (
-              <Pressable
-                key={cat.key}
-                onPress={() => setActiveCategory(cat.key)}
-                style={{
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  borderRadius: 20,
-                  backgroundColor:
-                    activeCategory === cat.key ? '#B388FF20' : '#12121A',
-                  borderWidth: 1,
-                  borderColor:
-                    activeCategory === cat.key ? '#B388FF' : '#2A2A3A',
-                  marginRight: 8,
-                }}
-              >
-                <Text
+          <View style={{ height: 45, marginBottom: 16 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 20, alignItems: 'center' }}
+            >
+              {CHORD_CATEGORIES.map((cat) => (
+                <Pressable
+                  key={cat.key}
+                  onPress={() => setActiveCategory(cat.key)}
                   style={{
-                    color: activeCategory === cat.key ? '#B388FF' : '#8888A0',
-                    fontSize: 12,
-                    fontWeight: '700',
+                    paddingHorizontal: 20,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    backgroundColor: activeCategory === cat.key ? '#B388FF20' : '#12121A',
+                    borderWidth: 1,
+                    borderColor: activeCategory === cat.key ? '#B388FF' : '#2A2A3A',
+                    marginRight: 8,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minWidth: 70,
                   }}
                 >
-                  {cat.label}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
+                  <Text
+                    style={{
+                      color: activeCategory === cat.key ? '#B388FF' : '#8888A0',
+                      fontSize: 13,
+                      fontWeight: '700',
+                    }}
+                  >
+                    {cat.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
 
           {/* Chord Grid */}
           <FlatList
@@ -331,6 +501,67 @@ export default function LibraryScreen() {
             showsVerticalScrollIndicator={false}
           />
         </>
+      ) : activeTab === 'scales' ? (
+        /* Scale List */
+        <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false}>
+          {SCALES.map((scale, index) => (
+            <Animated.View
+              key={scale.id}
+              entering={FadeInUp.delay(index * 60).duration(300)}
+            >
+              <Pressable
+                onPress={() => {
+                  setSelectedScale(scale);
+                  setScaleModalVisible(true);
+                }}
+                style={{
+                  backgroundColor: '#12121A',
+                  borderRadius: 16,
+                  padding: 16,
+                  borderWidth: 1,
+                  borderColor: '#2A2A3A',
+                  marginBottom: 10,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              >
+                <View
+                  style={{
+                    backgroundColor: '#B388FF20',
+                    borderRadius: 12,
+                    width: 48,
+                    height: 48,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="musical-notes" size={22} color="#B388FF" />
+                </View>
+                <View className="flex-1 ml-3">
+                  <Text className="text-text-primary font-bold" style={{ fontSize: 15 }}>
+                    {scale.name}
+                  </Text>
+                  <Text className="text-text-secondary mt-1" style={{ fontSize: 11 }}>
+                    Formula: {scale.formula}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    backgroundColor: '#1A1A25',
+                    borderRadius: 8,
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                  }}
+                >
+                  <Text style={{ color: '#8888A0', fontSize: 10, fontWeight: '700' }}>
+                    {scale.category.toUpperCase()}
+                  </Text>
+                </View>
+              </Pressable>
+            </Animated.View>
+          ))}
+          <View style={{ height: 100 }} />
+        </ScrollView>
       ) : (
         /* Sheet Music List */
         <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false}>
@@ -340,6 +571,10 @@ export default function LibraryScreen() {
               entering={FadeInUp.delay(index * 60).duration(300)}
             >
               <Pressable
+                onPress={() => {
+                  setSelectedSheet(sheet);
+                  setSheetModalVisible(true);
+                }}
                 style={{
                   backgroundColor: '#12121A',
                   borderRadius: 16,
@@ -400,6 +635,18 @@ export default function LibraryScreen() {
         chord={selectedChord}
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
+      />
+
+      <ScaleDetailModal
+        scale={selectedScale}
+        visible={scaleModalVisible}
+        onClose={() => setScaleModalVisible(false)}
+      />
+
+      <SheetDetailModal
+        sheet={selectedSheet}
+        visible={sheetModalVisible}
+        onClose={() => setSheetModalVisible(false)}
       />
     </SafeAreaView>
   );

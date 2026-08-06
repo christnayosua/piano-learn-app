@@ -1,4 +1,4 @@
-export type QuizType = 'note' | 'chord';
+export type QuizType = 'note' | 'chord' | 'ear' | 'sight';
 
 export interface QuizQuestion {
   id: string;
@@ -9,6 +9,8 @@ export interface QuizQuestion {
   options: string[];
   /** Visual hint: key indices to highlight on the piano */
   highlightKeys?: number[];
+  /** Sound note to play for ear training */
+  audioNote?: number;
 }
 
 export const NOTE_QUIZ: QuizQuestion[] = [
@@ -142,5 +144,67 @@ export const CHORD_QUIZ: QuizQuestion[] = [
     correctAnswer: 'G Dominant 7th',
     options: ['G Major', 'G Minor', 'G Dominant 7th', 'F Major 7th'],
     highlightKeys: [7, 11, 2, 5],
+  },
+];
+
+export const EAR_QUIZ: QuizQuestion[] = [
+  {
+    id: 'eq1',
+    type: 'ear',
+    question: 'Listen to the tone. Which note did you hear?',
+    correctAnswer: 'C',
+    options: ['C', 'E', 'G', 'B'],
+    audioNote: 0,
+  },
+  {
+    id: 'eq2',
+    type: 'ear',
+    question: 'Listen carefully. What note is playing?',
+    correctAnswer: 'G',
+    options: ['C', 'F', 'G', 'A'],
+    audioNote: 7,
+  },
+  {
+    id: 'eq3',
+    type: 'ear',
+    question: 'Listen to the pitch. Identify the note:',
+    correctAnswer: 'E',
+    options: ['D', 'E', 'F', 'G'],
+    audioNote: 4,
+  },
+  {
+    id: 'eq4',
+    type: 'ear',
+    question: 'Listen to this sharp note. What is it?',
+    correctAnswer: 'F#',
+    options: ['C#', 'D#', 'F#', 'G#'],
+    audioNote: 6,
+  },
+];
+
+export const SIGHT_QUIZ: QuizQuestion[] = [
+  {
+    id: 'sq1',
+    type: 'sight',
+    question: 'Which key corresponds to Middle C on the keyboard?',
+    correctAnswer: 'C4',
+    options: ['C3', 'C4', 'C5', 'G4'],
+    highlightKeys: [0],
+  },
+  {
+    id: 'sq2',
+    type: 'sight',
+    question: 'Which note lies on the first line of the Treble Clef?',
+    correctAnswer: 'E',
+    options: ['C', 'D', 'E', 'F'],
+    highlightKeys: [4],
+  },
+  {
+    id: 'sq3',
+    type: 'sight',
+    question: 'Which note lies in the top space of the Treble Clef?',
+    correctAnswer: 'E',
+    options: ['F', 'G', 'A', 'E'],
+    highlightKeys: [4],
   },
 ];

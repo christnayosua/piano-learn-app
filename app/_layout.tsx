@@ -6,14 +6,11 @@ import { View } from 'react-native';
 import { useAppStore } from '../store/useAppStore';
 
 export default function RootLayout() {
-  const loadProgress = useAppStore((s) => s.loadProgress);
   const updateStreak = useAppStore((s) => s.updateStreak);
 
   useEffect(() => {
-    loadProgress().then(() => {
-      updateStreak();
-    });
-  }, [loadProgress, updateStreak]);
+    updateStreak();
+  }, [updateStreak]);
 
   return (
     <View className="flex-1 bg-deep-black">

@@ -1,5 +1,7 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ACHIEVEMENTS } from '../data/achievements';
 
 interface UserProgress {
   xp: number;
@@ -11,6 +13,10 @@ interface UserProgress {
   quizHighScores: Record<string, number>;
   totalQuizCorrect: number;
   totalQuizAttempted: number;
+  soundEnabled: boolean;
+  hapticsEnabled: boolean;
+  unlockedAchievements: string[];
+  hasSeenOnboarding: boolean;
 }
 
 interface AppState extends UserProgress {
@@ -18,12 +24,14 @@ interface AppState extends UserProgress {
   completeLesson: (lessonId: string) => void;
   updateLessonProgress: (lessonId: string, progress: number) => void;
   recordQuizAnswer: (correct: boolean) => void;
+  recordQuizScore: (quizType: string, score: number) => void;
   updateStreak: () => void;
-  loadProgress: () => Promise<void>;
-  saveProgress: () => Promise<void>;
+  toggleSound: () => void;
+  toggleHaptics: () => void;
+  setHasSeenOnboarding: (val: boolean) => void;
+  checkAchievements: () => void;
+  resetProgress: () => void;
 }
-
-const STORAGE_KEY = 'piano_learn_progress';
 
 const calculateLevel = (xp: number): number => {
   return Math.floor(xp / 200) + 1;
@@ -33,7 +41,7 @@ const getTodayString = (): string => {
   return new Date().toISOString().split('T')[0];
 };
 
-export const useAppStore = create<AppState>((set, get) => ({
+const initialProgressState: UserProgress = {
   xp: 0,
   level: 1,
   streak: 1,
@@ -43,100 +51,117 @@ export const useAppStore = create<AppState>((set, get) => ({
   quizHighScores: {},
   totalQuizCorrect: 0,
   totalQuizAttempted: 0,
+  soundEnabled: true,
+  hapticsEnabled: true,
+  unlockedAchievements: [],
+  hasSeenOnboarding: false,
+};
 
-  addXP: (amount: number) => {
-    const currentXP = get().xp + amount;
-    const newLevel = calculateLevel(currentXP);
-    set({ xp: currentXP, level: newLevel });
-    get().saveProgress();
-  },
+export const useAppStore = create<AppState>()(
+  persist(
+    (set, get) => ({
+      ...initialProgressState,
 
-  completeLesson: (lessonId: string) => {
-    const completed = get().completedLessons;
-    if (!completed.includes(lessonId)) {
-      set({
-        completedLessons: [...completed, lessonId],
-        lessonProgress: { ...get().lessonProgress, [lessonId]: 100 },
-      });
-      get().addXP(50);
-    }
-  },
+      addXP: (amount: number) => {
+        const currentXP = get().xp + amount;
+        const newLevel = calculateLevel(currentXP);
+        set({ xp: currentXP, level: newLevel });
+        get().checkAchievements();
+      },
 
-  updateLessonProgress: (lessonId: string, progress: number) => {
-    set({
-      lessonProgress: { ...get().lessonProgress, [lessonId]: Math.min(progress, 100) },
-    });
-    get().saveProgress();
-  },
+      completeLesson: (lessonId: string) => {
+        const completed = get().completedLessons;
+        if (!completed.includes(lessonId)) {
+          set({
+            completedLessons: [...completed, lessonId],
+            lessonProgress: { ...get().lessonProgress, [lessonId]: 100 },
+          });
+          get().addXP(50);
+          get().checkAchievements();
+        }
+      },
 
-  recordQuizAnswer: (correct: boolean) => {
-    set({
-      totalQuizAttempted: get().totalQuizAttempted + 1,
-      totalQuizCorrect: get().totalQuizCorrect + (correct ? 1 : 0),
-    });
-    if (correct) {
-      get().addXP(10);
-    }
-  },
-
-  updateStreak: () => {
-    const today = getTodayString();
-    const lastPlayed = get().lastPlayedDate;
-
-    if (lastPlayed === today) return;
-
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-    if (lastPlayed === yesterdayStr) {
-      set({ streak: get().streak + 1, lastPlayedDate: today });
-    } else if (lastPlayed !== today) {
-      set({ streak: 1, lastPlayedDate: today });
-    }
-
-    get().saveProgress();
-  },
-
-  loadProgress: async () => {
-    try {
-      const saved = await AsyncStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const data = JSON.parse(saved) as Partial<UserProgress>;
+      updateLessonProgress: (lessonId: string, progress: number) => {
         set({
-          xp: data.xp ?? 0,
-          level: data.level ?? 1,
-          streak: data.streak ?? 1,
-          lastPlayedDate: data.lastPlayedDate ?? null,
-          completedLessons: data.completedLessons ?? [],
-          lessonProgress: data.lessonProgress ?? {},
-          quizHighScores: data.quizHighScores ?? {},
-          totalQuizCorrect: data.totalQuizCorrect ?? 0,
-          totalQuizAttempted: data.totalQuizAttempted ?? 0,
+          lessonProgress: { ...get().lessonProgress, [lessonId]: Math.min(progress, 100) },
         });
-      }
-    } catch (e) {
-      console.warn('Failed to load progress:', e);
-    }
-  },
+      },
 
-  saveProgress: async () => {
-    try {
-      const state = get();
-      const data: UserProgress = {
-        xp: state.xp,
-        level: state.level,
-        streak: state.streak,
-        lastPlayedDate: state.lastPlayedDate,
-        completedLessons: state.completedLessons,
-        lessonProgress: state.lessonProgress,
-        quizHighScores: state.quizHighScores,
-        totalQuizCorrect: state.totalQuizCorrect,
-        totalQuizAttempted: state.totalQuizAttempted,
-      };
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch (e) {
-      console.warn('Failed to save progress:', e);
+      recordQuizAnswer: (correct: boolean) => {
+        set({
+          totalQuizAttempted: get().totalQuizAttempted + 1,
+          totalQuizCorrect: get().totalQuizCorrect + (correct ? 1 : 0),
+        });
+        if (correct) {
+          get().addXP(10);
+        }
+        get().checkAchievements();
+      },
+
+      recordQuizScore: (quizType: string, score: number) => {
+        const currentHigh = get().quizHighScores[quizType] ?? 0;
+        if (score > currentHigh) {
+          set({
+            quizHighScores: { ...get().quizHighScores, [quizType]: score },
+          });
+        }
+      },
+
+      updateStreak: () => {
+        const today = getTodayString();
+        const lastPlayed = get().lastPlayedDate;
+
+        if (lastPlayed === today) return;
+
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+        if (lastPlayed === yesterdayStr) {
+          set({ streak: get().streak + 1, lastPlayedDate: today });
+        } else if (lastPlayed !== today) {
+          set({ streak: 1, lastPlayedDate: today });
+        }
+        get().checkAchievements();
+      },
+
+      toggleSound: () => {
+        set({ soundEnabled: !get().soundEnabled });
+      },
+
+      toggleHaptics: () => {
+        set({ hapticsEnabled: !get().hapticsEnabled });
+      },
+
+      setHasSeenOnboarding: (val: boolean) => {
+        set({ hasSeenOnboarding: val });
+      },
+
+      checkAchievements: () => {
+        const state = get();
+        const newlyUnlocked: string[] = [];
+
+        ACHIEVEMENTS.forEach((ach) => {
+          if (!state.unlockedAchievements.includes(ach.id) && ach.condition(state)) {
+            newlyUnlocked.push(ach.id);
+          }
+        });
+
+        if (newlyUnlocked.length > 0) {
+          set({
+            unlockedAchievements: [...state.unlockedAchievements, ...newlyUnlocked],
+          });
+        }
+      },
+
+      resetProgress: () => {
+        set({ ...initialProgressState });
+      },
+    }),
+    {
+      name: 'piano_learn_progress_v2',
+      storage: createJSONStorage(() => AsyncStorage),
     }
-  },
-}));
+  )
+);
+

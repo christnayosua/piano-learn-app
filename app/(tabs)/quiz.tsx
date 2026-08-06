@@ -8,14 +8,14 @@ import StatsBanner from '../../components/StatsBanner';
 import PianoKeyboard from '../../components/PianoKeyboard';
 import QuizCard from '../../components/QuizCard';
 import AnimatedButton from '../../components/AnimatedButton';
-import { NOTE_QUIZ, CHORD_QUIZ, type QuizQuestion } from '../../data/quizzes';
+import { NOTE_QUIZ, CHORD_QUIZ, EAR_QUIZ, SIGHT_QUIZ, type QuizQuestion, type QuizType } from '../../data/quizzes';
 import { useAppStore } from '../../store/useAppStore';
+import { playNoteSound } from '../../utils/sound';
 
 type QuizMode = 'menu' | 'playing' | 'result';
-type QuizType = 'note' | 'chord';
 
 export default function QuizScreen() {
-  const { xp, streak, level, recordQuizAnswer } = useAppStore();
+  const { xp, streak, level, recordQuizAnswer, recordQuizScore, quizHighScores } = useAppStore();
   const [mode, setMode] = useState<QuizMode>('menu');
   const [quizType, setQuizType] = useState<QuizType>('note');
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -24,10 +24,12 @@ export default function QuizScreen() {
   const [totalQuestions, setTotalQuestions] = useState(0);
 
   const questions = useMemo(() => {
-    const pool = quizType === 'note' ? NOTE_QUIZ : CHORD_QUIZ;
-    // Shuffle and pick 5
+    let pool = NOTE_QUIZ;
+    if (quizType === 'chord') pool = CHORD_QUIZ;
+    if (quizType === 'ear') pool = EAR_QUIZ;
+    if (quizType === 'sight') pool = SIGHT_QUIZ;
     return [...pool].sort(() => Math.random() - 0.5).slice(0, 5);
-  }, [quizType, mode]); // Re-shuffle when mode changes back to playing
+  }, [quizType, mode]);
 
   const currentQuestion = questions[currentIndex];
 
@@ -38,6 +40,10 @@ export default function QuizScreen() {
     setScore(0);
     setTotalQuestions(0);
     setMode('playing');
+    const firstQ = (type === 'ear' ? EAR_QUIZ : type === 'chord' ? CHORD_QUIZ : type === 'sight' ? SIGHT_QUIZ : NOTE_QUIZ)[0];
+    if (type === 'ear' && firstQ?.audioNote !== undefined) {
+      playNoteSound(firstQ.audioNote, 4);
+    }
   }, []);
 
   const handleAnswer = useCallback(
@@ -45,8 +51,9 @@ export default function QuizScreen() {
       setSelectedAnswer(answer);
       setTotalQuestions((prev) => prev + 1);
       recordQuizAnswer(isCorrect);
+      const newScore = score + (isCorrect ? 1 : 0);
       if (isCorrect) {
-        setScore((prev) => prev + 1);
+        setScore(newScore);
       }
 
       // Auto-advance after delay
@@ -55,11 +62,12 @@ export default function QuizScreen() {
           setCurrentIndex((prev) => prev + 1);
           setSelectedAnswer(null);
         } else {
+          recordQuizScore(quizType, newScore);
           setMode('result');
         }
       }, 1200);
     },
-    [currentIndex, questions.length, recordQuizAnswer]
+    [currentIndex, questions.length, recordQuizAnswer, recordQuizScore, quizType, score]
   );
 
   // Result Screen
@@ -396,9 +404,10 @@ export default function QuizScreen() {
             </Pressable>
           </Animated.View>
 
-          {/* Ear Training (Coming Soon) */}
+          {/* Ear Training */}
           <Animated.View entering={FadeInUp.delay(300).duration(400)}>
-            <View
+            <Pressable
+              onPress={() => startQuiz('ear')}
               style={{
                 backgroundColor: '#12121A',
                 borderRadius: 20,
@@ -406,7 +415,6 @@ export default function QuizScreen() {
                 borderWidth: 1,
                 borderColor: '#2A2A3A',
                 marginBottom: 14,
-                opacity: 0.5,
               }}
             >
               <View className="flex-row items-center">
@@ -427,23 +435,103 @@ export default function QuizScreen() {
                     Ear Training
                   </Text>
                   <Text className="text-text-secondary mt-1" style={{ fontSize: 12 }}>
-                    Recognize notes and chords by ear
+                    Recognize notes and pitch by ear
                   </Text>
                 </View>
+                <Ionicons name="chevron-forward" size={20} color="#555570" />
+              </View>
+              <View className="flex-row mt-3" style={{ gap: 8 }}>
                 <View
                   style={{
-                    backgroundColor: '#FF6BCD20',
+                    backgroundColor: '#FF6BCD10',
                     borderRadius: 8,
                     paddingHorizontal: 10,
                     paddingVertical: 4,
                   }}
                 >
                   <Text style={{ color: '#FF6BCD', fontSize: 10, fontWeight: '700' }}>
-                    SOON
+                    AUDIO QUIZ
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    backgroundColor: '#1A1A25',
+                    borderRadius: 8,
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                  }}
+                >
+                  <Text style={{ color: '#8888A0', fontSize: 10, fontWeight: '600' }}>
+                    ADVANCED
                   </Text>
                 </View>
               </View>
-            </View>
+            </Pressable>
+          </Animated.View>
+
+          {/* Sight Reading */}
+          <Animated.View entering={FadeInUp.delay(400).duration(400)}>
+            <Pressable
+              onPress={() => startQuiz('sight')}
+              style={{
+                backgroundColor: '#12121A',
+                borderRadius: 20,
+                padding: 20,
+                borderWidth: 1,
+                borderColor: '#2A2A3A',
+                marginBottom: 14,
+              }}
+            >
+              <View className="flex-row items-center">
+                <LinearGradient
+                  colors={['#FFD74020', '#FFD74010']}
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 16,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Text style={{ fontSize: 28 }}>🎼</Text>
+                </LinearGradient>
+                <View className="flex-1 ml-4">
+                  <Text className="text-text-primary font-bold" style={{ fontSize: 16 }}>
+                    Sight Reading
+                  </Text>
+                  <Text className="text-text-secondary mt-1" style={{ fontSize: 12 }}>
+                    Read staff notation and keyboard positions
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#555570" />
+              </View>
+              <View className="flex-row mt-3" style={{ gap: 8 }}>
+                <View
+                  style={{
+                    backgroundColor: '#FFD74010',
+                    borderRadius: 8,
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                  }}
+                >
+                  <Text style={{ color: '#FFD740', fontSize: 10, fontWeight: '700' }}>
+                    STAFF READ
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    backgroundColor: '#1A1A25',
+                    borderRadius: 8,
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                  }}
+                >
+                  <Text style={{ color: '#8888A0', fontSize: 10, fontWeight: '600' }}>
+                    PRO
+                  </Text>
+                </View>
+              </View>
+            </Pressable>
           </Animated.View>
         </View>
 
