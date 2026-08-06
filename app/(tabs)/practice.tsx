@@ -22,6 +22,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import PianoKeyboard from '../../components/PianoKeyboard';
 import AnimatedButton from '../../components/AnimatedButton';
+import MicIndicator from '../../components/MicIndicator';
+import { audioCaptureController, AudioCaptureStatus } from '../../utils/audioCapture';
+import { PitchDetectionResult } from '../../utils/pitchEngine';
 import {
   SONGS,
   SONG_CATEGORIES,
@@ -189,6 +192,14 @@ export default function PracticeScreen() {
   const [hitFeedback, setHitFeedback] = useState<string | null>(null);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   
+  // Real-Time Microphone Pitch Detection State
+  const [inputMode, setInputMode] = useState<'touch' | 'mic'>('touch');
+  const [isMicListening, setIsMicListening] = useState(false);
+  const [micPermission, setMicPermission] = useState(true);
+  const [currentRMS, setCurrentRMS] = useState(0);
+  const [detectedPitch, setDetectedPitch] = useState<PitchDetectionResult | null>(null);
+  const [enableAINoiseClearance, setEnableAINoiseClearance] = useState(true);
+
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const pulseAnim = useSharedValue(1);
@@ -210,6 +221,49 @@ export default function PracticeScreen() {
       )
       .map((n) => n.key % 12);
   }, [selectedSong, currentBeat]);
+
+  const detectedKeys = useMemo(() => {
+    if (!detectedPitch) return [];
+    return [detectedPitch.noteIndex];
+  }, [detectedPitch]);
+
+  // Handle Real-Time Pitch Matching when note detected via mic
+  useEffect(() => {
+    if (inputMode === 'mic' && detectedPitch && selectedSong && isPlaying) {
+      const matched = selectedSong.notes.find((n) => {
+        const beatsAhead = n.startBeat - currentBeat;
+        return n.key % 12 === detectedPitch.noteIndex && Math.abs(beatsAhead) <= 0.9;
+      });
+
+      if (matched) {
+        setScore((prev) => prev + 100);
+        setCombo((prev) => prev + 1);
+        setHitFeedback('PERFECT MIC!');
+        setTimeout(() => setHitFeedback(null), 800);
+      }
+    }
+  }, [detectedPitch, inputMode, selectedSong, currentBeat, isPlaying]);
+
+  // Handle Microphone Lifecycle
+  useEffect(() => {
+    if (state === 'playing' && inputMode === 'mic') {
+      audioCaptureController.setAINoiseClearance(enableAINoiseClearance);
+      audioCaptureController.startListening((status) => {
+        setIsMicListening(status.isListening);
+        setMicPermission(status.hasPermission);
+        setCurrentRMS(status.currentRMS);
+        setDetectedPitch(status.stablePitch || status.detectedPitch);
+      });
+    } else {
+      audioCaptureController.stopListening();
+      setIsMicListening(false);
+      setDetectedPitch(null);
+    }
+
+    return () => {
+      audioCaptureController.stopListening();
+    };
+  }, [state, inputMode, enableAINoiseClearance]);
 
   const stopPlayback = useCallback(() => {
     setIsPlaying(false);
@@ -307,7 +361,7 @@ export default function PracticeScreen() {
     return (
       <SafeAreaView className="flex-1 bg-deep-black">
         {/* Header */}
-        <View className="flex-row items-center px-5 pt-2 pb-3">
+        <View className="flex-row items-center px-5 pt-2 pb-2">
           <Pressable
             onPress={() => {
               stopPlayback();
@@ -365,6 +419,95 @@ export default function PracticeScreen() {
             </View>
           </View>
         </View>
+
+        {/* Mode Switcher: Touch vs Piano Asli (Mic) */}
+        <View
+          style={{
+            flexDirection: 'row',
+            marginHorizontal: 16,
+            marginBottom: 8,
+            backgroundColor: '#12121A',
+            borderRadius: 12,
+            padding: 3,
+            borderWidth: 1,
+            borderColor: '#2A2A3A',
+          }}
+        >
+          <Pressable
+            onPress={() => setInputMode('touch')}
+            style={{
+              flex: 1,
+              paddingVertical: 6,
+              borderRadius: 9,
+              backgroundColor: inputMode === 'touch' ? '#00E5FF20' : 'transparent',
+              borderWidth: inputMode === 'touch' ? 1 : 0,
+              borderColor: '#00E5FF',
+              alignItems: 'center',
+              flexDirection: 'row',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons
+              name="hand-left-outline"
+              size={14}
+              color={inputMode === 'touch' ? '#00E5FF' : '#8888A0'}
+              style={{ marginRight: 6 }}
+            />
+            <Text
+              style={{
+                color: inputMode === 'touch' ? '#00E5FF' : '#8888A0',
+                fontSize: 11,
+                fontWeight: '700',
+              }}
+            >
+              Tuts Layar
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setInputMode('mic')}
+            style={{
+              flex: 1,
+              paddingVertical: 6,
+              borderRadius: 9,
+              backgroundColor: inputMode === 'mic' ? '#00FF8820' : 'transparent',
+              borderWidth: inputMode === 'mic' ? 1 : 0,
+              borderColor: '#00FF88',
+              alignItems: 'center',
+              flexDirection: 'row',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons
+              name="mic"
+              size={14}
+              color={inputMode === 'mic' ? '#00FF88' : '#8888A0'}
+              style={{ marginRight: 6 }}
+            />
+            <Text
+              style={{
+                color: inputMode === 'mic' ? '#00FF88' : '#8888A0',
+                fontSize: 11,
+                fontWeight: '700',
+              }}
+            >
+              Piano Asli (Mic)
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* Mic Indicator Component when mic mode active */}
+        {inputMode === 'mic' && (
+          <MicIndicator
+            isListening={isMicListening}
+            hasPermission={micPermission}
+            currentRMS={currentRMS}
+            detectedPitch={detectedPitch}
+            enableAINoiseClearance={enableAINoiseClearance}
+            onToggleAINoiseClearance={() => setEnableAINoiseClearance(!enableAINoiseClearance)}
+            onRequestPermission={() => audioCaptureController.requestPermissions()}
+          />
+        )}
         {/* Letter Notes Banner */}
         {selectedSong.letterNotes && (
           <View
@@ -540,6 +683,7 @@ export default function PracticeScreen() {
         <View className="pb-4">
           <PianoKeyboard
             highlightedKeys={highlightedKeys}
+            detectedKeys={detectedKeys}
             octaves={2}
             compact
             onKeyPress={handleKeyPress}

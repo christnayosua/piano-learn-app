@@ -14,6 +14,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface PianoKeyboardProps {
   highlightedKeys?: number[];
+  detectedKeys?: number[];
   onKeyPress?: (keyIndex: number) => void;
   startOctave?: number;
   octaves?: number;
@@ -33,6 +34,7 @@ function PianoKey({
   noteIndex,
   octave = 4,
   isHighlighted,
+  isDetected,
   isBlack,
   onPress,
   whiteKeyWidth,
@@ -41,6 +43,7 @@ function PianoKey({
   noteIndex: number;
   octave?: number;
   isHighlighted: boolean;
+  isDetected?: boolean;
   isBlack: boolean;
   onPress: () => void;
   whiteKeyWidth: number;
@@ -62,6 +65,8 @@ function PianoKey({
     scale.value = withSpring(1, { damping: 15, stiffness: 350 });
   }, [scale]);
 
+  const activeColor = isDetected ? '#00FF88' : isHighlighted ? '#00E5FF' : null;
+
   if (isBlack) {
     const blackKeyWidth = whiteKeyWidth * 0.6;
     const blackKeyHeight = compact ? 60 : 80;
@@ -74,24 +79,24 @@ function PianoKey({
           {
             width: blackKeyWidth,
             height: blackKeyHeight,
-            backgroundColor: isHighlighted ? '#00E5FF' : '#1A1A25',
+            backgroundColor: activeColor || '#1A1A25',
             borderRadius: 0,
             borderBottomLeftRadius: 4,
             borderBottomRightRadius: 4,
             borderWidth: 1,
-            borderColor: isHighlighted ? '#00E5FF' : '#2A2A3A',
+            borderColor: activeColor || '#2A2A3A',
             zIndex: 10,
             position: 'absolute',
             left: (BLACK_KEY_OFFSETS[noteIndex % 12] ?? 0) * whiteKeyWidth + (whiteKeyWidth * 0.2),
-            shadowColor: isHighlighted ? '#00E5FF' : '#000',
+            shadowColor: activeColor || '#000',
             shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: isHighlighted ? 0.8 : 0.5,
-            shadowRadius: isHighlighted ? 8 : 4,
-            elevation: isHighlighted ? 8 : 4,
+            shadowOpacity: activeColor ? 0.8 : 0.5,
+            shadowRadius: activeColor ? 8 : 4,
+            elevation: activeColor ? 8 : 4,
           },
         ]}
       >
-        {isHighlighted && (
+        {(isHighlighted || isDetected) && (
           <View className="flex-1 items-center justify-end pb-1">
             <Text className="text-deep-black text-[8px] font-bold">
               {NOTE_NAMES[noteIndex % 12]}
@@ -112,18 +117,18 @@ function PianoKey({
         {
           width: whiteKeyWidth - 2,
           height: whiteKeyHeight,
-          backgroundColor: isHighlighted ? '#00E5FF' : '#EAEAF0',
+          backgroundColor: activeColor || '#EAEAF0',
           borderRadius: 0,
           borderBottomLeftRadius: 6,
           borderBottomRightRadius: 6,
           marginHorizontal: 1,
           borderWidth: 1,
-          borderColor: isHighlighted ? '#00E5FF' : '#D0D0D8',
-          shadowColor: isHighlighted ? '#00E5FF' : '#000',
+          borderColor: activeColor || '#D0D0D8',
+          shadowColor: activeColor || '#000',
           shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: isHighlighted ? 0.6 : 0.2,
-          shadowRadius: isHighlighted ? 8 : 3,
-          elevation: isHighlighted ? 6 : 2,
+          shadowOpacity: activeColor ? 0.6 : 0.2,
+          shadowRadius: activeColor ? 8 : 3,
+          elevation: activeColor ? 6 : 2,
         },
       ]}
     >
@@ -132,7 +137,7 @@ function PianoKey({
           style={{
             fontSize: compact ? 9 : 11,
             fontWeight: '600',
-            color: isHighlighted ? '#0A0A0F' : '#555570',
+            color: activeColor ? '#0A0A0F' : '#555570',
           }}
         >
           {NOTE_NAMES[noteIndex % 12]}
@@ -144,6 +149,7 @@ function PianoKey({
 
 export default function PianoKeyboard({
   highlightedKeys = [],
+  detectedKeys = [],
   onKeyPress,
   startOctave = 4,
   octaves = 2,
@@ -174,6 +180,10 @@ export default function PianoKeyboard({
     return highlightedKeys.includes(noteIndex % 12);
   };
 
+  const isKeyDetected = (noteIndex: number): boolean => {
+    return detectedKeys.includes(noteIndex % 12);
+  };
+
   return (
     <View
       className="items-center"
@@ -186,6 +196,7 @@ export default function PianoKeyboard({
             noteIndex={key.noteIndex}
             octave={key.octave}
             isHighlighted={isKeyHighlighted(key.noteIndex)}
+            isDetected={isKeyDetected(key.noteIndex)}
             isBlack={false}
             onPress={() => onKeyPress?.(key.noteIndex)}
             whiteKeyWidth={keyWidth}
@@ -206,6 +217,7 @@ export default function PianoKeyboard({
               noteIndex={key.noteIndex}
               octave={key.octave}
               isHighlighted={isKeyHighlighted(key.noteIndex)}
+              isDetected={isKeyDetected(key.noteIndex)}
               isBlack={true}
               onPress={() => onKeyPress?.(key.noteIndex)}
               whiteKeyWidth={keyWidth}

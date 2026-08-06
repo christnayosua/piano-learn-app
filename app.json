@@ -18,18 +18,31 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.pianolearn.app"
+      "bundleIdentifier": "com.pianolearn.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "PianoLearn memerlukan akses mikrofon untuk mendeteksi suara piano asli Anda secara real-time."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon.png",
         "backgroundColor": "#0A0A0F"
       },
-      "package": "com.pianolearn.app"
+      "package": "com.pianolearn.app",
+      "permissions": [
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "PianoLearn memerlukan akses mikrofon untuk mendeteksi suara piano asli Anda secara real-time."
+        }
+      ]
     ],
     "extra": {
       "router": {},
