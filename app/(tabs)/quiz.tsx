@@ -8,6 +8,7 @@ import StatsBanner from '../../components/StatsBanner';
 import PianoKeyboard from '../../components/PianoKeyboard';
 import QuizCard from '../../components/QuizCard';
 import AnimatedButton from '../../components/AnimatedButton';
+import StaffNotation from '../../components/StaffNotation';
 import { NOTE_QUIZ, CHORD_QUIZ, EAR_QUIZ, SIGHT_QUIZ, type QuizQuestion, type QuizType } from '../../data/quizzes';
 import { useAppStore } from '../../store/useAppStore';
 import { playNoteSound } from '../../utils/sound';
@@ -219,8 +220,26 @@ export default function QuizScreen() {
             </View>
           </View>
 
+          {/* Visual Staff Note */}
+          {currentQuestion.staffNote && (
+            <Animated.View entering={FadeInUp.duration(400)} className="mt-4 mb-2 items-center">
+              <StaffNotation
+                notes={[{
+                  key: currentQuestion.staffNote.key,
+                  octave: currentQuestion.staffNote.octave,
+                  duration: currentQuestion.staffNote.duration ?? 1,
+                }]}
+                clef={currentQuestion.staffClef ?? 'treble'}
+                width={320}
+                height={120}
+                showNoteLabels={selectedAnswer !== null}
+                highlightNoteIndex={0}
+              />
+            </Animated.View>
+          )}
+
           {/* Piano hint */}
-          {currentQuestion.highlightKeys && (
+          {currentQuestion.highlightKeys && !currentQuestion.staffNote && (
             <Animated.View entering={SlideInRight.duration(400)} className="mt-4 mb-6">
               <PianoKeyboard
                 highlightedKeys={currentQuestion.highlightKeys}

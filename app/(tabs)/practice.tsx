@@ -23,6 +23,7 @@ import Animated, {
 import PianoKeyboard from '../../components/PianoKeyboard';
 import AnimatedButton from '../../components/AnimatedButton';
 import MicIndicator from '../../components/MicIndicator';
+import ScrollingStaff from '../../components/ScrollingStaff';
 import { audioCaptureController, AudioCaptureStatus } from '../../utils/audioCapture';
 import { PitchDetectionResult } from '../../utils/pitchEngine';
 import {
@@ -191,6 +192,10 @@ export default function PracticeScreen() {
   const [combo, setCombo] = useState(0);
   const [hitFeedback, setHitFeedback] = useState<string | null>(null);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  
+  // Notation & Label Display Modes
+  const [notationMode, setNotationMode] = useState<'waterfall' | 'staff' | 'both'>('waterfall');
+  const [labelMode, setLabelMode] = useState<'letter' | 'solfege' | 'number' | 'none'>('letter');
   
   // Real-Time Microphone Pitch Detection State
   const [inputMode, setInputMode] = useState<'touch' | 'mic'>('touch');
@@ -496,6 +501,138 @@ export default function PracticeScreen() {
           </Pressable>
         </View>
 
+        {/* Notation View Switcher (Waterfall vs Not Balok vs Both) */}
+        <View
+          style={{
+            flexDirection: 'row',
+            marginHorizontal: 16,
+            marginBottom: 8,
+            backgroundColor: '#12121A',
+            borderRadius: 12,
+            padding: 3,
+            borderWidth: 1,
+            borderColor: '#2A2A3A',
+          }}
+        >
+          <Pressable
+            onPress={() => setNotationMode('waterfall')}
+            style={{
+              flex: 1,
+              paddingVertical: 6,
+              borderRadius: 9,
+              backgroundColor: notationMode === 'waterfall' ? '#00E5FF20' : 'transparent',
+              borderWidth: notationMode === 'waterfall' ? 1 : 0,
+              borderColor: '#00E5FF',
+              alignItems: 'center',
+            }}
+          >
+            <Text
+              style={{
+                color: notationMode === 'waterfall' ? '#00E5FF' : '#8888A0',
+                fontSize: 11,
+                fontWeight: '700',
+              }}
+            >
+              Waterfall
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setNotationMode('staff')}
+            style={{
+              flex: 1,
+              paddingVertical: 6,
+              borderRadius: 9,
+              backgroundColor: notationMode === 'staff' ? '#B388FF20' : 'transparent',
+              borderWidth: notationMode === 'staff' ? 1 : 0,
+              borderColor: '#B388FF',
+              alignItems: 'center',
+            }}
+          >
+            <Text
+              style={{
+                color: notationMode === 'staff' ? '#B388FF' : '#8888A0',
+                fontSize: 11,
+                fontWeight: '700',
+              }}
+            >
+              Not Balok
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setNotationMode('both')}
+            style={{
+              flex: 1,
+              paddingVertical: 6,
+              borderRadius: 9,
+              backgroundColor: notationMode === 'both' ? '#FF6BCD20' : 'transparent',
+              borderWidth: notationMode === 'both' ? 1 : 0,
+              borderColor: '#FF6BCD',
+              alignItems: 'center',
+            }}
+          >
+            <Text
+              style={{
+                color: notationMode === 'both' ? '#FF6BCD' : '#8888A0',
+                fontSize: 11,
+                fontWeight: '700',
+              }}
+            >
+              Keduanya
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* Label Mode Switcher (Huruf, Solfege, Angka, Hidden) */}
+        {(notationMode === 'staff' || notationMode === 'both') && (
+          <View
+            style={{
+              flexDirection: 'row',
+              marginHorizontal: 16,
+              marginBottom: 8,
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <Text style={{ color: '#8888A0', fontSize: 11, fontWeight: '600' }}>
+              Format Notasi:
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              {(['letter', 'solfege', 'number', 'none'] as const).map((fmt) => (
+                <Pressable
+                  key={fmt}
+                  onPress={() => setLabelMode(fmt)}
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 8,
+                    backgroundColor: labelMode === fmt ? '#2A2A3A' : '#12121A',
+                    borderWidth: 1,
+                    borderColor: labelMode === fmt ? '#00E5FF' : '#2A2A3A',
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: labelMode === fmt ? '#00E5FF' : '#8888A0',
+                      fontSize: 10,
+                      fontWeight: '700',
+                    }}
+                  >
+                    {fmt === 'letter'
+                      ? 'Huruf (C-D-E)'
+                      : fmt === 'solfege'
+                      ? 'Solfege (Do-Re)'
+                      : fmt === 'number'
+                      ? 'Angka (1-2-3)'
+                      : 'Sembunyikan'}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        )}
+
         {/* Mic Indicator Component when mic mode active */}
         {inputMode === 'mic' && (
           <MicIndicator
@@ -531,86 +668,103 @@ export default function PracticeScreen() {
           </View>
         )}
 
-        {/* Falling Notes Area */}
-        <Animated.View
-          style={[
-            pulseStyle,
-            {
-              flex: 1,
-              marginHorizontal: 16,
-              borderRadius: 16,
-              backgroundColor: '#12121A',
-              borderWidth: 1,
-              borderColor: '#2A2A3A',
-              overflow: 'hidden',
-              position: 'relative',
-            },
-          ]}
-        >
-          {/* Hit Feedback Floating Toast */}
-          {hitFeedback && (
-            <Animated.View
-              entering={FadeIn.duration(200)}
-              style={{
-                position: 'absolute',
-                top: 40,
-                alignSelf: 'center',
-                backgroundColor: '#00E5FF',
-                paddingHorizontal: 16,
-                paddingVertical: 6,
-                borderRadius: 12,
-                zIndex: 50,
-              }}
-            >
-              <Text style={{ color: '#0A0A0F', fontWeight: '900', fontSize: 14 }}>
-                {hitFeedback}
-              </Text>
-            </Animated.View>
-          )}
-
-          {/* Target Hit Line */}
-          <View
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: 4,
-              backgroundColor: '#00E5FF',
-              shadowColor: '#00E5FF',
-              shadowRadius: 8,
-              shadowOpacity: 0.8,
-            }}
-          />
-
-          {/* Falling notes */}
-          {selectedSong.notes.map((note, i) => (
-            <FallingNote
-              key={`${note.key}-${note.startBeat}-${i}`}
-              note={note}
+        {/* Not Balok Staff View (when staff or both active) */}
+        {(notationMode === 'staff' || notationMode === 'both') && (
+          <View style={{ marginHorizontal: 16, marginBottom: 8, alignItems: 'center' }}>
+            <ScrollingStaff
+              notes={selectedSong.notes}
               currentBeat={currentBeat}
               bpm={selectedSong.bpm}
-              keyboardWidth={SCREEN_WIDTH}
+              labelMode={labelMode}
+              width={SCREEN_WIDTH - 32}
+              height={130}
             />
-          ))}
-
-          {/* Beat counter */}
-          <View
-            style={{
-              position: 'absolute',
-              top: 12,
-              right: 12,
-              backgroundColor: '#1A1A25',
-              borderRadius: 8,
-              paddingHorizontal: 10,
-              paddingVertical: 4,
-            }}
-          >
-            <Text style={{ color: '#8888A0', fontSize: 11, fontWeight: '700' }}>
-              Beat: {Math.max(0, Math.floor(currentBeat))}
-            </Text>
           </View>
-        </Animated.View>
+        )}
+
+        {/* Falling Notes Area (when waterfall or both active) */}
+        {(notationMode === 'waterfall' || notationMode === 'both') && (
+          <Animated.View
+            style={[
+              pulseStyle,
+              {
+                flex: 1,
+                marginHorizontal: 16,
+                borderRadius: 16,
+                backgroundColor: '#12121A',
+                borderWidth: 1,
+                borderColor: '#2A2A3A',
+                overflow: 'hidden',
+                position: 'relative',
+                minHeight: notationMode === 'both' ? 180 : 280,
+              },
+            ]}
+          >
+            {/* Hit Feedback Floating Toast */}
+            {hitFeedback && (
+              <Animated.View
+                entering={FadeIn.duration(200)}
+                style={{
+                  position: 'absolute',
+                  top: 40,
+                  alignSelf: 'center',
+                  backgroundColor: '#00E5FF',
+                  paddingHorizontal: 16,
+                  paddingVertical: 6,
+                  borderRadius: 12,
+                  zIndex: 50,
+                }}
+              >
+                <Text style={{ color: '#0A0A0F', fontWeight: '900', fontSize: 14 }}>
+                  {hitFeedback}
+                </Text>
+              </Animated.View>
+            )}
+
+            {/* Target Hit Line */}
+            <View
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 4,
+                backgroundColor: '#00E5FF',
+                shadowColor: '#00E5FF',
+                shadowRadius: 8,
+                shadowOpacity: 0.8,
+              }}
+            />
+
+            {/* Falling notes */}
+            {selectedSong.notes.map((note, i) => (
+              <FallingNote
+                key={`${note.key}-${note.startBeat}-${i}`}
+                note={note}
+                currentBeat={currentBeat}
+                bpm={selectedSong.bpm}
+                keyboardWidth={SCREEN_WIDTH}
+              />
+            ))}
+
+            {/* Beat counter */}
+            <View
+              style={{
+                position: 'absolute',
+                top: 12,
+                right: 12,
+                backgroundColor: '#1A1A25',
+                borderRadius: 8,
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+              }}
+            >
+              <Text style={{ color: '#8888A0', fontSize: 11, fontWeight: '700' }}>
+                Beat: {Math.max(0, Math.floor(currentBeat))}
+              </Text>
+            </View>
+          </Animated.View>
+        )}
 
         {/* Controls */}
         <View className="px-5 py-3">

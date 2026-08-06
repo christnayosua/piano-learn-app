@@ -11,6 +11,13 @@ export interface QuizQuestion {
   highlightKeys?: number[];
   /** Sound note to play for ear training */
   audioNote?: number;
+  /** Visual staff note representation */
+  staffNote?: {
+    key: number;
+    octave: number;
+    duration?: number;
+  };
+  staffClef?: 'treble' | 'bass';
 }
 
 export const NOTE_QUIZ: QuizQuestion[] = [
@@ -21,6 +28,8 @@ export const NOTE_QUIZ: QuizQuestion[] = [
     correctAnswer: 'C',
     options: ['C', 'D', 'E', 'F'],
     highlightKeys: [0],
+    staffNote: { key: 0, octave: 4 },
+    staffClef: 'treble',
   },
   {
     id: 'nq2',
@@ -29,6 +38,8 @@ export const NOTE_QUIZ: QuizQuestion[] = [
     correctAnswer: 'E',
     options: ['D', 'E', 'F', 'G'],
     highlightKeys: [4],
+    staffNote: { key: 4, octave: 4 },
+    staffClef: 'treble',
   },
   {
     id: 'nq3',
@@ -37,6 +48,8 @@ export const NOTE_QUIZ: QuizQuestion[] = [
     correctAnswer: 'G',
     options: ['F', 'G', 'A', 'B'],
     highlightKeys: [7],
+    staffNote: { key: 7, octave: 4 },
+    staffClef: 'treble',
   },
   {
     id: 'nq4',
@@ -45,6 +58,8 @@ export const NOTE_QUIZ: QuizQuestion[] = [
     correctAnswer: 'A',
     options: ['G', 'A', 'B', 'C'],
     highlightKeys: [9],
+    staffNote: { key: 9, octave: 4 },
+    staffClef: 'treble',
   },
   {
     id: 'nq5',
@@ -53,6 +68,8 @@ export const NOTE_QUIZ: QuizQuestion[] = [
     correctAnswer: 'F',
     options: ['E', 'F', 'G', 'A'],
     highlightKeys: [5],
+    staffNote: { key: 5, octave: 4 },
+    staffClef: 'treble',
   },
   {
     id: 'nq6',
@@ -61,6 +78,8 @@ export const NOTE_QUIZ: QuizQuestion[] = [
     correctAnswer: 'B',
     options: ['A', 'A#', 'B', 'C'],
     highlightKeys: [11],
+    staffNote: { key: 11, octave: 4 },
+    staffClef: 'treble',
   },
   {
     id: 'nq7',
@@ -69,6 +88,8 @@ export const NOTE_QUIZ: QuizQuestion[] = [
     correctAnswer: 'D',
     options: ['C', 'C#', 'D', 'D#'],
     highlightKeys: [2],
+    staffNote: { key: 2, octave: 4 },
+    staffClef: 'treble',
   },
   {
     id: 'nq8',
@@ -77,6 +98,8 @@ export const NOTE_QUIZ: QuizQuestion[] = [
     correctAnswer: 'F#',
     options: ['F', 'F#', 'G', 'G#'],
     highlightKeys: [6],
+    staffNote: { key: 6, octave: 4 },
+    staffClef: 'treble',
   },
 ];
 
@@ -186,25 +209,55 @@ export const SIGHT_QUIZ: QuizQuestion[] = [
   {
     id: 'sq1',
     type: 'sight',
-    question: 'Which key corresponds to Middle C on the keyboard?',
+    question: 'Identify the note shown on the Treble Staff:',
     correctAnswer: 'C4',
-    options: ['C3', 'C4', 'C5', 'G4'],
-    highlightKeys: [0],
+    options: ['C4', 'D4', 'E4', 'G4'],
+    staffNote: { key: 0, octave: 4, duration: 1 },
+    staffClef: 'treble',
   },
   {
     id: 'sq2',
     type: 'sight',
     question: 'Which note lies on the first line of the Treble Clef?',
-    correctAnswer: 'E',
-    options: ['C', 'D', 'E', 'F'],
-    highlightKeys: [4],
+    correctAnswer: 'E4',
+    options: ['C4', 'D4', 'E4', 'F4'],
+    staffNote: { key: 4, octave: 4, duration: 1 },
+    staffClef: 'treble',
   },
   {
     id: 'sq3',
     type: 'sight',
-    question: 'Which note lies in the top space of the Treble Clef?',
-    correctAnswer: 'E',
-    options: ['F', 'G', 'A', 'E'],
-    highlightKeys: [4],
+    question: 'Identify this note in the third space of Treble Clef:',
+    correctAnswer: 'C5',
+    options: ['B4', 'C5', 'D5', 'E5'],
+    staffNote: { key: 0, octave: 5, duration: 1 },
+    staffClef: 'treble',
+  },
+  {
+    id: 'sq4',
+    type: 'sight',
+    question: 'Identify the note shown on the Bass Staff:',
+    correctAnswer: 'F3',
+    options: ['D3', 'E3', 'F3', 'G3'],
+    staffNote: { key: 5, octave: 3, duration: 1 },
+    staffClef: 'bass',
+  },
+  {
+    id: 'sq5',
+    type: 'sight',
+    question: 'Identify this sharp note on the staff:',
+    correctAnswer: 'F#4',
+    options: ['F4', 'F#4', 'G4', 'G#4'],
+    staffNote: { key: 6, octave: 4, duration: 1 },
+    staffClef: 'treble',
+  },
+  {
+    id: 'sq6',
+    type: 'sight',
+    question: 'What is this Bass Clef note?',
+    correctAnswer: 'C3',
+    options: ['C3', 'D3', 'E3', 'F3'],
+    staffNote: { key: 0, octave: 3, duration: 1 },
+    staffClef: 'bass',
   },
 ];

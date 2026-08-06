@@ -1,3 +1,5 @@
+import { StaffDisplayNote } from '../components/StaffNotation';
+
 export type LessonSection = 'basics' | 'intermediate' | 'advanced' | 'professional';
 
 export interface Lesson {
@@ -17,6 +19,9 @@ export interface LessonContentDetails {
   practiceTitle: string;
   practiceInstruction: string;
   highlightedKeys: number[];
+  staffNotes?: StaffDisplayNote[];
+  staffClef?: 'treble' | 'bass';
+  staffTimeSignature?: string;
 }
 
 export const SECTIONS: { key: LessonSection; label: string; color: string }[] = [
@@ -119,6 +124,15 @@ export const CURRICULUM: Lesson[] = [
     isLocked: true,
     progress: 0,
   },
+  {
+    id: 'i6',
+    title: 'Reading Bass Clef',
+    description: 'Master F Clef lines, spaces, and left hand reading',
+    section: 'intermediate',
+    icon: 'musical-note',
+    isLocked: true,
+    progress: 0,
+  },
   // Advanced
   {
     id: 'a1',
@@ -153,6 +167,15 @@ export const CURRICULUM: Lesson[] = [
     description: 'Broken chord patterns across octaves',
     section: 'advanced',
     icon: 'flash',
+    isLocked: true,
+    progress: 0,
+  },
+  {
+    id: 'a5',
+    title: 'Grand Staff & Ledger Lines',
+    description: 'Connect treble and bass staves with Middle C',
+    section: 'advanced',
+    icon: 'layers-outline',
     isLocked: true,
     progress: 0,
   },
@@ -261,9 +284,17 @@ export const LESSON_CONTENTS: Record<string, LessonContentDetails> = {
       'Line notes (bottom to top): E G B D F',
       'Space notes (bottom to top): F A C E',
     ],
-    practiceTitle: 'Play the C Triad (C - E - G)',
-    practiceInstruction: 'Tap C, E, and G on the keyboard to hear the foundational triad.',
-    highlightedKeys: [0, 4, 7],
+    practiceTitle: 'Play the Treble Staff Line Notes',
+    practiceInstruction: 'Tap the notes on the staff (E4, G4, B4, D5, F5).',
+    highlightedKeys: [4, 7, 11, 2, 5],
+    staffClef: 'treble',
+    staffNotes: [
+      { key: 4, octave: 4, duration: 1, finger: 1 },
+      { key: 7, octave: 4, duration: 1, finger: 2 },
+      { key: 11, octave: 4, duration: 1, finger: 3 },
+      { key: 2, octave: 5, duration: 1, finger: 4 },
+      { key: 5, octave: 5, duration: 1, finger: 5 },
+    ],
   },
   i1: {
     theoryTitle: 'The C Major Scale',
@@ -279,6 +310,16 @@ export const LESSON_CONTENTS: Record<string, LessonContentDetails> = {
     practiceTitle: 'Ascending C Major Scale',
     practiceInstruction: 'Tap the highlighted keys in order from C up to C.',
     highlightedKeys: [0, 2, 4, 5, 7, 9, 11],
+    staffClef: 'treble',
+    staffNotes: [
+      { key: 0, octave: 4, duration: 1 },
+      { key: 2, octave: 4, duration: 1 },
+      { key: 4, octave: 4, duration: 1 },
+      { key: 5, octave: 4, duration: 1 },
+      { key: 7, octave: 4, duration: 1 },
+      { key: 9, octave: 4, duration: 1 },
+      { key: 11, octave: 4, duration: 1 },
+    ],
   },
   i2: {
     theoryTitle: 'Essential Major Chords (C, F, G)',
@@ -294,6 +335,12 @@ export const LESSON_CONTENTS: Record<string, LessonContentDetails> = {
     practiceTitle: 'C Major Triad Practice',
     practiceInstruction: 'Tap C, E, and G together to form a full C Major chord.',
     highlightedKeys: [0, 4, 7],
+    staffClef: 'treble',
+    staffNotes: [
+      { key: 0, octave: 4, duration: 1 },
+      { key: 4, octave: 4, duration: 1 },
+      { key: 7, octave: 4, duration: 2 },
+    ],
   },
   i3: {
     theoryTitle: 'Understanding Rhythm & Time',
@@ -309,6 +356,12 @@ export const LESSON_CONTENTS: Record<string, LessonContentDetails> = {
     practiceTitle: 'Pulse Rhythm Exercise',
     practiceInstruction: 'Tap C key steadily on 4 consecutive beats.',
     highlightedKeys: [0],
+    staffClef: 'treble',
+    staffNotes: [
+      { key: 0, octave: 4, duration: 4 },
+      { key: 0, octave: 4, duration: 2 },
+      { key: 0, octave: 4, duration: 1 },
+    ],
   },
   i4: {
     theoryTitle: 'Developing Two-Hand Independence',
@@ -399,6 +452,48 @@ export const LESSON_CONTENTS: Record<string, LessonContentDetails> = {
     practiceTitle: 'C Major Arpeggio Sequence',
     practiceInstruction: 'Play C - E - G - C in a flowing motion.',
     highlightedKeys: [0, 4, 7],
+  },
+  i6: {
+    theoryTitle: 'Reading the Bass Clef (F Clef)',
+    theoryParagraphs: [
+      'The Bass Clef (F Clef) indicates notes in lower pitch ranges, typically played with the left hand.',
+      'Memorize line notes from bottom to top: G - B - D - F - A. Space notes spell A - C - E - G.',
+    ],
+    keyPoints: [
+      'Bass Clef handles lower pitch ranges & left hand',
+      'Line notes (bottom to top): G B D F A',
+      'Space notes (bottom to top): A C E G',
+    ],
+    practiceTitle: 'Bass Clef Line Notes Practice',
+    practiceInstruction: 'Tap G3, B3, D3, F3, A3 on the keyboard.',
+    highlightedKeys: [7, 11, 2, 5, 9],
+    staffClef: 'bass',
+    staffNotes: [
+      { key: 7, octave: 2, duration: 1 },
+      { key: 11, octave: 2, duration: 1 },
+      { key: 2, octave: 3, duration: 1 },
+      { key: 5, octave: 3, duration: 1 },
+      { key: 9, octave: 3, duration: 1 },
+    ],
+  },
+  a5: {
+    theoryTitle: 'Grand Staff & Ledger Lines',
+    theoryParagraphs: [
+      'Piano sheet music combines Treble and Bass staves into a Grand Staff, joined by a brace.',
+      'Middle C (C4) acts as the central anchor sitting on a ledger line right between the two staves.',
+    ],
+    keyPoints: [
+      'Grand Staff = Treble Clef (RH) + Bass Clef (LH)',
+      'Middle C (C4) connects both staves',
+      'Ledger lines extend range above or below staves',
+    ],
+    practiceTitle: 'Middle C Ledger Line Anchor',
+    practiceInstruction: 'Tap C4 (Middle C) to feel the center of the Grand Staff.',
+    highlightedKeys: [0],
+    staffClef: 'treble',
+    staffNotes: [
+      { key: 0, octave: 4, duration: 2 },
+    ],
   },
   p1: {
     theoryTitle: 'Melodic & Harmonic Improvisation',

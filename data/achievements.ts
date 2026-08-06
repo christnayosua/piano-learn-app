@@ -51,4 +51,22 @@ export const ACHIEVEMENTS: Achievement[] = [
     xpReward: 200,
     condition: (s) => s.level >= 5,
   },
+  {
+    id: 'staff_reader',
+    title: 'Sheet Music Scholar',
+    description: 'Complete the Treble Clef Reading lesson',
+    icon: 'book',
+    color: '#00E5FF',
+    xpReward: 100,
+    condition: (s) => s.completedLessons.includes('b5'),
+  },
+  {
+    id: 'sight_master',
+    title: 'Sight Reader',
+    description: 'Answer 5 sight reading quiz questions correctly',
+    icon: 'eye',
+    color: '#FF6BCD',
+    xpReward: 150,
+    condition: (s) => s.totalQuizCorrect >= 5,
+  },
 ];

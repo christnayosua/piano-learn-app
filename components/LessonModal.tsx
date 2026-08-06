@@ -19,6 +19,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import PianoKeyboard from './PianoKeyboard';
 import AnimatedButton from './AnimatedButton';
+import StaffNotation from './StaffNotation';
 import {
   LESSON_CONTENTS,
   SECTIONS,
@@ -216,6 +217,21 @@ export default function LessonModal({ lesson, visible, onClose }: LessonModalPro
                     ))}
                   </LinearGradient>
 
+                  {/* Staff Notation Visual in Theory */}
+                  {content.staffNotes && content.staffNotes.length > 0 && (
+                    <View style={{ marginVertical: 14, alignItems: 'center' }}>
+                      <Text style={{ color: '#8888A0', fontSize: 12, fontWeight: '700', marginBottom: 8 }}>
+                        STAFF NOTATION VISUAL
+                      </Text>
+                      <StaffNotation
+                        notes={content.staffNotes}
+                        clef={content.staffClef ?? 'treble'}
+                        width={SCREEN_WIDTH - 48}
+                        showNoteLabels={true}
+                      />
+                    </View>
+                  )}
+
                   {/* Key Takeaways */}
                   <View style={styles.sectionBlock}>
                     <Text style={styles.sectionHeaderTitle}>Key Takeaways</Text>
@@ -237,6 +253,19 @@ export default function LessonModal({ lesson, visible, onClose }: LessonModalPro
                       <Text style={styles.practiceInstruction}>{content.practiceInstruction}</Text>
                     </View>
                   </View>
+
+                  {/* Staff Notation Interactive Practice Visual */}
+                  {content.staffNotes && content.staffNotes.length > 0 && (
+                    <View style={{ marginBottom: 14, alignItems: 'center' }}>
+                      <StaffNotation
+                        notes={content.staffNotes}
+                        clef={content.staffClef ?? 'treble'}
+                        width={SCREEN_WIDTH - 48}
+                        highlightNoteIndex={pressedKeys.length % content.staffNotes.length}
+                        showNoteLabels={true}
+                      />
+                    </View>
+                  )}
 
                   {/* Interactive Piano Keyboard */}
                   <View style={styles.keyboardContainer}>
