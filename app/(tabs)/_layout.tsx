@@ -21,8 +21,9 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        sceneContainerStyle: { backgroundColor: 'transparent' },
         tabBarStyle: {
-          backgroundColor: '#0A0A0F',
+          backgroundColor: 'rgba(10, 10, 15, 0.90)',
           borderTopColor: '#1A1A25',
           borderTopWidth: 1,
           height: tabBarHeight,

@@ -9,7 +9,7 @@ module.exports = {
     extend: {
       colors: {
         deep: {
-          black: "#0A0A0F",
+          black: "transparent",
           card: "#12121A",
           surface: "#1A1A25",
           border: "#2A2A3A",

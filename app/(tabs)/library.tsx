@@ -7,19 +7,23 @@ import {
   FlatList,
   Modal,
   Dimensions,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInUp, SlideInUp } from 'react-native-reanimated';
+import { useRouter } from 'expo-router';
 import PianoKeyboard from '../../components/PianoKeyboard';
 import ChordDiagram from '../../components/ChordDiagram';
 import AnimatedButton from '../../components/AnimatedButton';
+import NoteGuide from '../../components/NoteGuide';
 import { CHORDS, NOTE_NAMES, type Chord, type ChordCategory } from '../../data/chords';
 import { SCALES, type Scale } from '../../data/scales';
+import { SONGS, type Song } from '../../data/songs';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-type LibraryTab = 'chords' | 'scales' | 'sheets';
+type LibraryTab = 'chords' | 'scales' | 'sheets' | 'guide';
 
 const CHORD_CATEGORIES: { key: ChordCategory | 'all'; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -29,16 +33,7 @@ const CHORD_CATEGORIES: { key: ChordCategory | 'all'; label: string }[] = [
   { key: 'diminished', label: 'Dim' },
 ];
 
-const SAMPLE_SHEETS = [
-  { id: 's1', title: 'Für Elise', composer: 'Beethoven', difficulty: 'medium' as const, pages: 3 },
-  { id: 's2', title: 'Moonlight Sonata (1st Mvt)', composer: 'Beethoven', difficulty: 'hard' as const, pages: 5 },
-  { id: 's3', title: 'Prelude in C Major', composer: 'Bach', difficulty: 'medium' as const, pages: 2 },
-  { id: 's4', title: 'Clair de Lune', composer: 'Debussy', difficulty: 'hard' as const, pages: 6 },
-  { id: 's5', title: 'Turkish March', composer: 'Mozart', difficulty: 'medium' as const, pages: 4 },
-  { id: 's6', title: 'Canon in D', composer: 'Pachelbel', difficulty: 'easy' as const, pages: 2 },
-  { id: 's7', title: 'Gymnopédie No.1', composer: 'Satie', difficulty: 'easy' as const, pages: 2 },
-  { id: 's8', title: 'Nocturne Op.9 No.2', composer: 'Chopin', difficulty: 'hard' as const, pages: 4 },
-];
+
 
 const DIFF_COLORS = { easy: '#00E5FF', medium: '#B388FF', hard: '#FF6BCD' };
 
@@ -274,79 +269,14 @@ function ChordDetailModal({
   );
 }
 
-function SheetDetailModal({
-  sheet,
-  visible,
-  onClose,
-}: {
-  sheet: typeof SAMPLE_SHEETS[0] | null;
-  visible: boolean;
-  onClose: () => void;
-}) {
-  if (!sheet) return null;
 
-  return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
-        <Animated.View
-          entering={SlideInUp.duration(400)}
-          style={{
-            backgroundColor: '#0A0A0F',
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            padding: 24,
-            paddingBottom: 40,
-            borderWidth: 1,
-            borderColor: '#2A2A3A',
-          }}
-        >
-          <View className="items-center mb-4">
-            <View style={{ width: 36, height: 4, backgroundColor: '#2A2A3A', borderRadius: 2 }} />
-          </View>
-
-          <View className="flex-row items-center justify-between mb-6">
-            <View>
-              <Text className="text-text-primary font-bold" style={{ fontSize: 22 }}>
-                {sheet.title}
-              </Text>
-              <Text className="text-text-secondary mt-1" style={{ fontSize: 14 }}>
-                {sheet.composer} · {sheet.pages} pages
-              </Text>
-            </View>
-            <Pressable onPress={onClose} style={{ backgroundColor: '#1A1A25', borderRadius: 12, padding: 8 }}>
-              <Ionicons name="close" size={20} color="#8888A0" />
-            </Pressable>
-          </View>
-
-          <View style={{ backgroundColor: '#12121A', borderRadius: 16, padding: 32, alignItems: 'center', marginBottom: 24, borderWidth: 1, borderColor: '#2A2A3A' }}>
-            <Ionicons name="construct" size={48} color="#8888A0" style={{ marginBottom: 16 }} />
-            <Text style={{ color: '#EAEAF0', fontSize: 16, fontWeight: '700', textAlign: 'center', marginBottom: 8 }}>
-              Work in Progress
-            </Text>
-            <Text style={{ color: '#8888A0', fontSize: 13, textAlign: 'center' }}>
-              Fitur Sheet Music Viewer akan segera ditambahkan di sini!
-            </Text>
-          </View>
-
-          <AnimatedButton
-            title="Close"
-            onPress={onClose}
-            size="lg"
-            variant="secondary"
-          />
-        </Animated.View>
-      </View>
-    </Modal>
-  );
-}
 
 export default function LibraryScreen() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<LibraryTab>('chords');
   const [activeCategory, setActiveCategory] = useState<ChordCategory | 'all'>('all');
   const [selectedChord, setSelectedChord] = useState<Chord | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedSheet, setSelectedSheet] = useState<typeof SAMPLE_SHEETS[0] | null>(null);
-  const [sheetModalVisible, setSheetModalVisible] = useState(false);
   const [selectedScale, setSelectedScale] = useState<Scale | null>(null);
   const [scaleModalVisible, setScaleModalVisible] = useState(false);
 
@@ -424,7 +354,7 @@ export default function LibraryScreen() {
 
       {/* Tab Switcher */}
       <View className="flex-row mx-5 mt-4 mb-4">
-        {(['chords', 'scales', 'sheets'] as LibraryTab[]).map((tab) => (
+        {(['chords', 'scales', 'sheets', 'guide'] as LibraryTab[]).map((tab) => (
           <Pressable
             key={tab}
             onPress={() => setActiveTab(tab)}
@@ -444,7 +374,7 @@ export default function LibraryScreen() {
                 fontWeight: '700',
               }}
             >
-              {tab === 'chords' ? '🎹 Chords' : tab === 'scales' ? '🎼 Scales' : '📄 Sheets'}
+              {tab === 'chords' ? '🎹 Chords' : tab === 'scales' ? '🎼 Scales' : tab === 'sheets' ? '📄 Sheets' : '📖 Guide'}
             </Text>
           </Pressable>
         ))}
@@ -562,18 +492,17 @@ export default function LibraryScreen() {
           ))}
           <View style={{ height: 100 }} />
         </ScrollView>
-      ) : (
+      ) : activeTab === 'sheets' ? (
         /* Sheet Music List */
         <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false}>
-          {SAMPLE_SHEETS.map((sheet, index) => (
+          {SONGS.map((sheet, index) => (
             <Animated.View
               key={sheet.id}
               entering={FadeInUp.delay(index * 60).duration(300)}
             >
               <Pressable
                 onPress={() => {
-                  setSelectedSheet(sheet);
-                  setSheetModalVisible(true);
+                  router.push(`/sheet/${sheet.id}`);
                 }}
                 style={{
                   backgroundColor: '#12121A',
@@ -603,7 +532,7 @@ export default function LibraryScreen() {
                     {sheet.title}
                   </Text>
                   <Text className="text-text-secondary mt-1" style={{ fontSize: 11 }}>
-                    {sheet.composer} · {sheet.pages} pages
+                    {sheet.artist}
                   </Text>
                 </View>
                 <View
@@ -629,6 +558,11 @@ export default function LibraryScreen() {
           ))}
           <View style={{ height: 100 }} />
         </ScrollView>
+      ) : (
+        /* Note Guide Tab */
+        <View className="flex-1 px-5">
+          <NoteGuide />
+        </View>
       )}
 
       <ChordDetailModal
@@ -643,11 +577,7 @@ export default function LibraryScreen() {
         onClose={() => setScaleModalVisible(false)}
       />
 
-      <SheetDetailModal
-        sheet={selectedSheet}
-        visible={sheetModalVisible}
-        onClose={() => setSheetModalVisible(false)}
-      />
+
     </SafeAreaView>
   );
 }
