@@ -1,0 +1,12 @@
+# Ignore native directories because we are using Expo Managed Workflow (CNG)
+android/
+ios/
+
+# Ignore node_modules
+node_modules/
+
+# Ignore other standard things
+.git/
+dist/
+.expo/
+web-build/

@@ -298,7 +298,9 @@ export default function PracticeScreen() {
     intervalRef.current = setInterval(() => {
       setCurrentBeat((prev) => {
         const nextBeat = prev + 0.25;
-        const maxBeat = Math.max(...selectedSong.notes.map((n) => n.startBeat + n.duration));
+        const maxBeat = selectedSong.notes.length > 0
+          ? Math.max(...selectedSong.notes.map((n) => n.startBeat + n.duration))
+          : 16;
 
         // Play demo sound automatically
         selectedSong.notes.forEach((note) => {

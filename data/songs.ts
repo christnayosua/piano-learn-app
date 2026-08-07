@@ -1,5 +1,6 @@
 export type SongDifficulty = 'easy' | 'medium' | 'hard';
 export type SongCategory = 'pop' | 'classical' | 'jazz' | 'movie';
+import { parseLetterNotes } from '../utils/songParser';
 
 export const SONG_CATEGORIES: { key: SongCategory | 'all'; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -36,7 +37,7 @@ export interface Song {
   notes: SongNote[];
 }
 
-export const SONGS: Song[] = [
+const RAW_SONGS: Song[] = [
   {
     id: "book1_g1_01",
     title: "1. Walking and Running",
@@ -710,3 +711,13 @@ export const SONGS: Song[] = [
     notes: []
   }
 ];
+
+export const SONGS: Song[] = RAW_SONGS.map((song) => {
+  if (song.notes.length === 0 && song.letterNotes) {
+    return {
+      ...song,
+      notes: parseLetterNotes(song.letterNotes),
+    };
+  }
+  return song;
+});

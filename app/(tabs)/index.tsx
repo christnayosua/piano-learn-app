@@ -140,13 +140,12 @@ export default function HomeScreen() {
   }, [enrichedLessons]);
 
   const groupedBySection = useMemo(() => {
-    const groups: Record<LessonSection, Lesson[]> = {
-      basics: [],
-      intermediate: [],
-      advanced: [],
-      professional: [],
-    };
+    const groups: Record<string, Lesson[]> = {};
+    SECTIONS.forEach((sec) => {
+      groups[sec.key] = [];
+    });
     enrichedLessons.forEach((lesson) => {
+      if (!groups[lesson.section]) groups[lesson.section] = [];
       groups[lesson.section].push(lesson);
     });
     return groups;
